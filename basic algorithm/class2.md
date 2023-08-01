@@ -39,7 +39,28 @@ AcWing 826. 单链表 https://www.acwing.com/problem/content/828/
 
 ## KMP 字符串
 
+[OI WiKi 关于 KMP 的介绍](https://oi-wiki.org/string/kmp/)：通过**前缀函数**求 `next` 数组，以及 KMP 匹配、字符串的循环节等
 
+```C++
+// 求 next 数组
+// ne[0] = 0;
+for (int i = 1; i < n; i++) {
+    int j = ne[i - 1];
+    while (j && p[i] != p[j]) j = ne[j-1];
+    if (p[i] == p[j]) j++;
+    ne[i] = j;
+}
+
+// KMP 匹配过程
+for (int i = 0, j = 0; i < m; i++) {
+    while (j && s[i] != p[j]) j = ne[j-1];
+    if (s[i] == p[j]) j++;
+    if (j == n) {
+        cout << i - n + 1 << " ";
+        j = ne[j-1];
+    }
+}
+```
 
 
 
