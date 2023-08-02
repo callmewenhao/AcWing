@@ -389,35 +389,177 @@ $$
 
 [这个题目](https://www.acwing.com/problem/content/206/) 并不满足中国剩余定理中互质的条件，需要进行额外的处理
 
-
-
 ## 高斯消元
 
 ### 高斯消元解线性方程组
 
-异或运算 == 不进位的加法
+在 `n^3` 时间内，计算出一个包含 `n` 个方程 `n` 个未知数的线性方程组（方程组中的系数为**实数**）。
 
+一个包含 `m` 个方程 `n` 个未知数的线性方程组示例
 
+$$
+\begin{cases}
+    & a_{11} x_1 + a_{12} x_2 + \cdots + a_{1n} x_n = b_1 \\
+    & a_{21} x_1 + a_{22} x_2 + \cdots + a_{2n} x_n = b_2 \\
+    & \cdots \\
+    & a_{m1} x_1 + a_{m2} x_2 + \cdots + a_{mn} x_n = b_m \\
+\end{cases}
+$$
 
+高斯消元：通过下面的三种操作将增广矩阵化简成行最简形式（上三角形式）
 
+- 某行乘非零的数
+- 交换某两行
+- 把某行若干倍加到另一行上去
+
+方程组解的情况：
+
+- 无解（0行等于非零行）
+- 无穷组解（0等于0，存在多余方程）
+- 唯一解（完美阶梯型）
+
+具体步骤：
+
+- 枚举每一列 c，找到绝对值最大的行
+- 把这一行换到最上面去
+- 将该行的的第 1 数变成 1
+- 把下面所有行的第 c 列消成 0
+- 最后从下到上进行求解
+
+```C++
+// 返回值 
+// 0：唯一解
+// 1：无穷解
+// 2：无解
+int gauss() {
+    int c, r;
+    // 枚举每一列 c
+    for (c = 0, r = 0; c < n; c++) {
+        // 找到绝对值最大的行
+        int t = r; // 从当前这一行开始向下找
+        for (int i = r; i < n; i++)
+            if (fabs(a[i][c]) > fabs(a[t][c]))
+                t = i;
+        // 如果找到的当前行列是 0 （小于精度）
+        if (fabs(a[t][c]) < eps) continue;
+        // 不是 0 就交换
+        for (int i = c; i <= n; i++) swap(a[t][i], a[r][i]);  // 等号右侧的值也要交换
+        // 将该行的的第 1 数变成 1 注意要从后向前运算，防止覆盖
+        for (int i = n; i >= c; i--) a[r][i] /= a[r][c];
+        // 把下面所有行的第 c 列消成 0
+        for (int i = r + 1; i < n; i++) 
+            // 如果已经是 0 了，就不用减了
+            // 否则需要减去
+            if (fabs(a[i][c]) > eps) 
+                // 还是要从后向前运算，防止覆盖
+                for (int j = n; j >= c; j--)
+                    a[i][j] -= a[r][j] * a[i][c];
+        r++;
+    }
+    // 解的情况
+    if (r < n) {
+        //判断是否无解
+        for (int i = r; i < n; i++) {
+            //如果等式右边不是 0
+            if (fabs(a[i][n]) > eps) return 2;  // 无解
+        }
+        // 有无穷解
+        return 1;
+    }
+    // 求解过程，消元
+    for (int i = n - 1; i >= 0; i--) {
+        for (int j = i + 1; j < n; j++) 
+            a[i][n] -= a[i][j] * a[j][n];  // 答案存储在 a[i][n] 中
+    }
+    return 0;
+}
+```
 
 ### 高斯消元解异或线性方程组
 
+异或运算别名：不进位的加法
 
+异或线性方程组示例如下：方程组中的系数和常数为 0 或 1 ，每个未知数的取值也为 0 或 1
+
+$$
+\begin{cases}
+    & m_{11} x_1 \oplus m_{12} x_2 \oplus \cdots \oplus m_{1n} x_n = b_1 \\
+    & m_{21} x_1 \oplus m_{22} x_2 \oplus \cdots \oplus m_{2n} x_n = b_2 \\
+    & \cdots \\
+    & m_{m1} x_1 \oplus m_{m2} x_2 \oplus \cdots \oplus m_{mn} x_n = b_m \\
+\end{cases}
+$$
+
+思路和解一般的方程一样，把系数矩阵消成一个上三角矩阵：
+
+- 枚举每一列
+- 找到非零行
+- 交换行
+- 下面清零
+
+另外，解的情况也和之前一样
+
+```C++
+int gauss() {
+    int r, c;
+    for (r = c = 0; c < n; c++) {
+        // 找到非零行
+        int t = r;
+        for (int i = r; i < n; i++) {
+            if (a[i][c]) {
+                t = i;
+                break;
+            }
+        }
+        // 判断找到的结果对不对
+        if (!a[t][c]) continue;
+        // 交换行
+        for (int i = c; i <= n; i++) swap(a[t][i], a[r][i]);
+        // 下面清零
+        for (int i = r + 1; i < n; i++)
+            if (a[i][c])
+                for (int j = c; j <= n; j++)
+                    a[i][j] ^= a[r][j];
+        r++;
+    }
+    // 解的情况
+    if (r < n) {
+        for (int i = r; i < n; i++)
+            //如果等式右边不是 0
+            if (a[i][n]) return 2;
+        return 1;
+    }
+    // 求解
+    for (int i = n-1; i >= 0; i--)
+        for (int j = i + 1; j < n; j++)
+            // xi ^= aij * xj
+            a[i][n] ^= a[i][j] * a[j][n];
+    return 0;
+}
+```
 
 ## 组合数
 
 组合数公式：
 
 $$
-C_a^b = \frac{a!}{(a-b)!b!} = \frac{a*(a-1)*\cdots*(a-b+1)}{b*(b-1)*\cdots*1}
+C_a^b = \frac{a!}{(a-b)!b!} = \frac{a*(a-1)*\cdots*(a-b+1)}{b*(b-1)*\cdots*1} 
 $$
 
 另一个重要的组合数公式：$C_n^0 + C_n^1 + C_n^2 + \cdots + C_n^{n-1} + C_n^n = 2^n$ 推导出 $C_n^1 + C_n^2 + \cdots + C_n^{n-1} + C_n^n = 2^n - 1$
 
 ### 组合数 1
 
-数据范围：$1 <= a, b <= 2000$，使用 **递推** 进行预处理
+给定 $n$ 组询问，每组询问给定两个整数 $a$，$b$，请你输出 $C_a^b \bmod (10^9+7)$ 的值。
+
+数据范围：
+
+- $1 <= n <= 10000$
+- $1 <= b <= a <= 2000$
+
+如果暴力计算，每计算一个组合数时间复杂度是 2000，一共有 10000 次询问，总的**时间复杂度**就是 2e7，**会超时**；注意到 a * b 最大也就是 4e6，所以可以使用 **递推** 预处理所有组合数的值，然后再查询，这样总的时间复杂度就是 `n^2` = 4e6 量级，不会超时。
+
+递推式：$C_a^b = C_{a-1}^{b-1} + C_{a-1}^b$
 
 ```C++
 for (int i = 0; i < N; i++) {
@@ -430,35 +572,54 @@ for (int i = 0; i < N; i++) {
 
 ### 组合数 2
 
-数据范围：$1 <= a, b <= 1e5$
+给定 $n$ 组询问，每组询问给定两个整数 $a$，$b$，请你输出 $C_a^b \bmod (10^9+7)$ 的值。
 
-借助逆元，分解组合数的公式，预处理出来阶乘和阶乘的逆元
+数据范围：
+
+- $1 <= n <= 10000$
+- $1 <= b <= a <= 1e5$
+
+根据组合数公式：$C_a^b \pmod{10^9+7}= \frac{a!}{(a-b)!b!} \pmod{10^9+7}$，预处理出阶乘 `factor` 和阶乘的逆元 `infactor`，则 `C[a][b] = factor[a] * infactor[a-b] * infactor[b]`，而预处理阶乘和阶乘的逆元时间复杂度为：`O(nlogn)`，注意运算过程中使用 LL
 
 ```C++
 // 预处理阶乘和阶乘逆元
 fact[0] = infact[0] = 1;
 for (int i = 1; i < N; i++) {
     fact[i] = (LL)fact[i-1] * i % mod;
+    // 注意是累乘求出的，不是直接求出的阶乘的逆元
     infact[i] = (LL)infact[i-1] * qmi(i, mod-2, mod) % mod;
 }
-
-int n;
-cin >> n;
-
-while (n--) {
-    int a, b;
-    cin >> a >> b;
-    cout << (LL)fact[a] * infact[b] % mod * infact[a - b] % mod << endl;
-}
+// 计算组合数
+cout << (LL)fact[a] * infact[b] % mod * infact[a - b] % mod << endl;
 ```
 
 ### 组合数 3
 
-数据范围：$1 <= a, b <= 1e18,\ 1 <= p <= 1e5$
+给定 $n$ 组询问，每组询问给定两个整数 $a$，$b$，$p$，其中 $p$ 是质数，请你输出 $C_a^b \bmod p$ 的值。
 
-使用 [**卢卡斯**](https://oi-wiki.org/math/number-theory/lucas/) 定理，Lucas 定理用于求解大组合数取模的问题，其中模数必须为素数
+数据范围：
+
+- $1 <= n <= 20$
+- $1 <= b <= a <= 1e18$
+- $1 <= p <= 1e5$
+
+使用 [**卢卡斯**](https://oi-wiki.org/math/number-theory/lucas/) 定理，Lucas 定理用于求解大组合数取模的问题，其中模数必须为质数，定理公式如下:
+
+$$
+\left(\begin{array}{c}
+n \\
+m
+\end{array}\right) \bmod p=\left(\begin{array}{c}
+\lfloor n / p\rfloor \\
+\lfloor m / p\rfloor
+\end{array}\right) \cdot\left(\begin{array}{c}
+n \bmod p \\
+m \bmod p
+\end{array}\right) \bmod p
+$$
 
 ```C++
+// 计算快速幂
 int qmi(int a, int k, int p)
 {
     int res = 1;
@@ -471,6 +632,7 @@ int qmi(int a, int k, int p)
     return res;
 }
 
+// 计算单次组合数
 int C(int a, int b, int p)
 {
     if (b > a) return 0;
@@ -483,6 +645,7 @@ int C(int a, int b, int p)
     return res;
 }
 
+// Lucas 定理
 int lucas(LL a, LL b, int p)
 {
     if (a < p && b < p) return C(a, b, p);
@@ -492,21 +655,68 @@ int lucas(LL a, LL b, int p)
 
 ### 组合数 4
 
-数据范围：$1 <= a, b <= 5000$，但是不**模**某个数，结果可能很大，需要使用高精度计算。
+输入 $a$，$b$，求 $C_a^b$ 的值。
+
+数据范围：$1 <= b <= a <= 5000$
+
+从定义出发，使用高精度计算 $C_a^b = \frac{a*(a-1)*\cdots*(a-b+1)}{b*(b-1)*\cdots*1}$，只需要高精度乘法和除法，但是这样比较难写。一般采用如下方法：
+
+- 分解质因数：$C_a^b = \frac{a!}{(a-b)!b!} = p_1^{\alpha_1} * p_2^{\alpha_2} * \cdots * p_k^{\alpha_k}$
+    - 阶乘分解质因数，$n!$ 中 p 的个数：$\lfloor \frac{n}{p} \rfloor + \lfloor \frac{n}{p^2} \rfloor + \cdots + \lfloor \frac{n}{p^k} \rfloor$，注意理解这个公式 😊
+- 然后使用高精度乘法计算上式
+
+计算步骤：
+
+- 筛质数
+- 求每个质数的个数
+- 用高精度把质因子乘到一起
+
+```C++
+// 计算 n! 中的 p 的个数
+int get(int n, int p) {
+    int res = 0;
+    while (n) {
+        res += n / p;
+        n /= p;
+    }
+    return res;
+} 
+```
 
 ### 卡特兰数
 
-[卡特兰数定义](https://oi-wiki.org/math/combinatorics/catalan/)
+[OI WiKi 卡特兰数定义](https://oi-wiki.org/math/combinatorics/catalan/)
 
-**Catalan** 数 $H_n$ 的常见公式:
+题目：给定 $n$ 个 0 和 $n$ 个 1，它们将按照某种顺序排成长度为 $2n$ 的序列，求它们能排列成的所有序列中，能够满足任意前缀序列中 0 的个数都不少于 1 的个数的序列有多少个。输出的答案对 $10^9+7$ 取模。类似问题：[130. 火车进出栈问题](https://www.acwing.com/problem/content/132/)
+
+算法思路：
+
+将这个求方案数的问题转化到二维坐标系上：从 (0, 0) 出发到 (n, n) 这个点一共有多少路径数，并且要求路径上的点 (x, y) 满足 x >= y。
+
+对应到坐标系上，就是经过的点必须在 (0, 0) 与 (n, n) 的连线（绿线）上或者下方。最终答案可以用**总的路径数减去越过绿线的路径数**，总的个数是：$C_{2n}^n$。
+
+另外，我们画一条红线（绿线向 y 轴正方向平移一个单位），并把越过绿线的路径**从越过的点开始**做红线的轴对称处理，这样路径的终点就变成了 (n-1, n+1)，而且这样的处理后得到的新路径和原路径是一一对应的。
+
+所以从 (0, 0) 出发到 (n-1, n+1) 的路径数就是 从 (0, 0) 出发到 (n, n) 并且越过绿线的路径数：$C_{2n}^{n-1}$
+
+故，最终答案：$H_n = C_{2n}^{n} - C_{2n}^{n-1}$
+
+**Catalan** 数 $H_n$ 的公式:
 
 $$
-H_n = C_{2n}^{n} - C_{2n}^{n-1} = \frac{C_{2n}^{n}}{n+1} = \frac{H_{n-1}(4n-2)}{n+1}
+H_n = C_{2n}^{n} - C_{2n}^{n-1} 
+= \frac{C_{2n}^{n}}{n+1} 
+= \frac{1}{n+1} * \frac{2n*(2n-1)*\cdots*(n+1)}{n*(n-1)*\cdots*1}
+= \frac{H_{n-1}(4n-2)}{n+1}
 $$
 
 ## 容斥原理
 
-m 个集合组成的交集中元素的个数：$S = S_1\cup\cdots\cup S_m =\sum_{i}S_i - \sum_{i, j}S_i\cap S_j + \sum_{i, j, k}S_i\cap S_j\cap S_k + \cdots + (-1)^{m-1}S_1\cap\cdots\cap S_m$
+m 个集合组成的交集中元素的个数：
+
+$$
+S = S_1\cup\cdots\cup S_m =\sum_{i}S_i - \sum_{i, j}S_i\cap S_j + \sum_{i, j, k}S_i\cap S_j\cap S_k + \cdots + (-1)^{m-1}S_1\cap\cdots\cap S_m
+$$
 
 容斥原理的时间复杂度为 $2^m$，其中 m 是集合的个数。一般地，如果题目中 m 的范围不大，可以借助位运算优化算法，容斥原理和位运算基本绑定
 
