@@ -1,5 +1,8 @@
+import java.util.*;
+import java.util.Collections;
+
 public class Main {
-    class Pair {
+    static class Pair {
         public Pair(int a, int b) {
             this.a = a;
             this.b = b;
@@ -10,12 +13,12 @@ public class Main {
     }
 
     static int N = 300_007;
-    int[] a = new int[N], s = new int[N];
+    static int[] a = new int[N], s = new int[N];
 
-    List<Integer> alls = new ArrayList<>();
-    List<Pair> add = new ArrayList<>(), query = new ArrayList<>();
+    static List<Integer> alls = new ArrayList<>();
+    static List<Pair> add = new ArrayList<>(), query = new ArrayList<>();
 
-    private int left_search(List<Integer> alls, int x) {
+    private static int left_search(List<Integer> alls, int x) {
         int left = 0, right = alls.size() - 1;
         while (left <= right) {
             int mid = (left + right) / 2;
@@ -25,7 +28,7 @@ public class Main {
         return left;
     }
 
-    private int unique(List<Integer> alls) {
+    private static int unique(List<Integer> alls) {
         int i = 0;
         for (int j = 0; j < alls.size(); j++) {
             int x = alls.get(j);
@@ -37,9 +40,43 @@ public class Main {
     }
 
     public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt(), m = sc.nextInt();
 
+        for (int i = 0; i < n; i++) {
+            int x = sc.nextInt(), c = sc.nextInt();
+            add.add(new Pair(x, c));
+            alls.add(x);
+        }
+
+        for (int i = 0; i < m; i++) {
+            int l = sc.nextInt(), r = sc.nextInt();
+            query.add(new Pair(l, r));
+            alls.add(l);
+            alls.add(r);
+        }
         
+        // 排序 + 去重
+        Collections.sort(alls);
+        alls = alls.subList(0, unique(alls));
+        
+        // 修改
+        for (var p: add) {
+            int idx = left_search(alls, p.a) + 1;
+            a[idx] += p.b;
+        }
 
+        // 前缀和
+        for (int i = 1; i <= alls.size(); i++) {
+            s[i] = s[i-1] + a[i];
+        }
 
+        // 查询
+        for (var p: query) {
+            int l = p.a, r = p.b;
+            l = left_search(alls, l) + 1;
+            r = left_search(alls, r) + 1;
+            System.out.println(s[r] - s[l-1]);
+        }
     }
 }
